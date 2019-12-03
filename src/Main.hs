@@ -11,6 +11,7 @@ solve 1 2 = show . Day1.solve2
 solve 2 1 = Day2.solve1
 solve 2 2 = Day2.solve2
 solve 3 1 = Day3.solve1
+solve 3 2 = Day3.solve2
 solve _ _ = const "Solution does not yet exist"
 
 main :: IO ()
