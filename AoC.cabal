@@ -20,6 +20,7 @@ executable AoC
   main-is:             Main.hs
   other-modules:       Day1
                      , Day2
+                     , Day3
                      , IntCode
                      , ZipSequence
   -- other-extensions:
