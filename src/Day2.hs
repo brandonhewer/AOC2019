@@ -2,69 +2,41 @@
 
 module Day2 where
 
-import Control.Monad.Except
-import Control.Monad.State.Strict
+import Control.Monad.Except (runExcept)
+import Data.Functor.Classes (eq1, liftEq)
+import qualified Data.IntMap.Strict as IM
 import Data.List (find)
 import Data.List.Split (splitOn)
-import Data.Maybe (fromJust, isNothing)
 import Data.Sequence
+import qualified IntCode as IC
 
-codeOp :: MonadError String m => Int -> m (Int -> Int -> Int)
-codeOp 1 = return (+)
-codeOp 2 = return (*)
-codeOp n = throwError ("No operation with code " ++ show n)
-
-innerIndex :: Seq Int -> Int -> Int
-innerIndex vs i = index vs (index vs i)
-
-runStep :: (MonadState (Seq Int) m, MonadError String m) => Int -> m (Maybe Int)
-runStep n = do
-  vs <- get
-  case vs !? (n + 3) of
-    Nothing -> throwError ("Index out of bounds: " ++ show n)
-    Just pos ->
-      case index vs n of
-        99 -> return Nothing
-        c -> do
-          op <- codeOp (index vs n)
-          let rs = op (innerIndex vs (n + 1)) (innerIndex vs (n + 2))
-          put $ update pos rs vs
-          return $ Just (n + 4)
-
-iterateUntilM :: Monad m => (a -> m (Maybe a)) -> a -> m a
-iterateUntilM f v = f v >>= go
-  where
-    go Nothing = return v
-    go (Just w) = iterateUntilM f w
-
-runProgram :: (MonadState (Seq Int) m, MonadError String m) => m ()
-runProgram = iterateUntilM runStep 0 >> return ()
-
-runWithInput :: MonadError String m => Int -> Int -> Seq Int -> m (Seq Int)
-runWithInput n v = execStateT runProgram . update 2 v . update 1 n
+ops :: IM.IntMap (IC.Operation Int)
+ops =
+  IM.fromList
+    [ (1, IC.Nary $ \x -> IC.Unary (\y -> x + y))
+    , (2, IC.Nary $ \x -> IC.Unary (\y -> x * y))
+    ]
 
 makeIntSeq :: [String] -> Seq Int
 makeIntSeq = fromList . (map read . splitOn "," =<<)
 
+run :: Int -> Int -> Seq Int -> Either IC.ProgramError (Seq Int)
+run m n xs = runExcept $ IC.runProgramWith 99 ops [(1, m), (2, n)] xs
+
+isHead :: Eq a => a -> Seq a -> Bool
+isHead x y = eq1 (Just x) (y !? 0)
+
 solve1 :: [String] -> String
 solve1 xs =
-  let vs = runWithInput 12 2 $ makeIntSeq xs
-   in case runExcept vs of
-        Left err -> err
-        Right rs -> show $ index rs 0
+  case run 12 2 (makeIntSeq xs) of
+    Left err -> show err
+    Right rs -> show $ index rs 0
 
 solve2 :: [String] -> String
 solve2 xs =
   let program = makeIntSeq xs
-      results = [runWithInput x y program | x <- [1 .. 100], y <- [1 .. 100]]
-   in case find isExpRes results of
+      results = [run x y program | x <- [1 .. 100], y <- [1 .. 100]]
+   in case find (liftEq isHead $ Right 19690720) results of
         Nothing -> "Not found"
-        Just v ->
-          case runExcept v of
-            Left err -> err
-            Right x -> show (100 * index x 1 + index x 2)
-  where
-    isExpRes r =
-      case runExcept r of
-        Left err -> False
-        Right rs -> 19690720 == index rs 0
+        Just (Left err) -> show err
+        Just (Right x) -> show (100 * index x 1 + index x 2)

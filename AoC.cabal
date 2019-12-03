@@ -20,6 +20,8 @@ executable AoC
   main-is:             Main.hs
   other-modules:       Day1
                      , Day2
+                     , IntCode
+                     , ZipSequence
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13
                      , mtl  >=2.2.2
