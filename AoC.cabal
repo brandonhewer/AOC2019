@@ -21,6 +21,7 @@ executable AoC
   other-modules:       Day1
                      , Day2
                      , Day3
+                     , Day4
                      , IntCode
                      , ZipSequence
   -- other-extensions:
