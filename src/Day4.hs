@@ -2,10 +2,7 @@ module Day4 where
 
 import Control.Applicative (liftA2)
 import Data.List (group)
-
-digits :: Integral a => a -> [a]
-digits 0 = []
-digits n = n `mod` 10 : digits (n `div` 10)
+import IntUtil (digits)
 
 isDescending :: Ord a => [a] -> Bool
 isDescending = all (uncurry (>=)) . (zip <*> tail)

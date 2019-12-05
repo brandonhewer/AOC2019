@@ -22,7 +22,10 @@ executable AoC
                      , Day2
                      , Day3
                      , Day4
+                     , Day5
                      , IntCode
+                     , IntOps
+                     , IntUtil
                      , ZipSequence
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13

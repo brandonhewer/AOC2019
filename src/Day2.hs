@@ -9,19 +9,17 @@ import Data.List (find)
 import Data.List.Split (splitOn)
 import Data.Sequence
 import qualified IntCode as IC
+import IntOps
 
 ops :: IM.IntMap (IC.Operation Int)
-ops =
-  IM.fromList
-    [ (1, IC.Nary $ \x -> IC.Unary (\y -> x + y))
-    , (2, IC.Nary $ \x -> IC.Unary (\y -> x * y))
-    ]
+ops = IM.fromList [(1, addOperation), (2, multiplyOperation)]
 
 makeIntSeq :: [String] -> Seq Int
 makeIntSeq = fromList . (map read . splitOn "," =<<)
 
 run :: Int -> Int -> Seq Int -> Either IC.ProgramError (Seq Int)
-run m n xs = runExcept $ IC.runProgramWith 99 ops [(1, m), (2, n)] xs
+run m n xs =
+  runExcept $ IC.runOnce 99 ops (IC.modifyProgram [(1, m), (2, n)] xs)
 
 isHead :: Eq a => a -> Seq a -> Bool
 isHead x y = eq1 (Just x) (y !? 0)
