@@ -23,9 +23,11 @@ executable AoC
                      , Day3
                      , Day4
                      , Day5
-                     , IntCode
-                     , IntOps
                      , IntUtil
+                     , TapeInterpreter
+                     , TapeInterpreter.IntCode
+                     , TapeInterpreter.IntOps
+                     , TapeInterpreter.Types
                      , ZipSequence
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13

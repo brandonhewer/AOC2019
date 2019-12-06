@@ -8,20 +8,19 @@ import qualified Data.IntMap.Strict as IM
 import Data.List (find)
 import Data.List.Split (splitOn)
 import Data.Sequence
-import qualified IntCode as IC
-import IntOps
+import qualified TapeInterpreter as IC
 
 ops :: IM.IntMap (IC.Operation Int)
 ops =
   IM.fromList
-    [ (1, addOperation)
-    , (2, multiplyOperation)
-    , (3, readOperation)
-    , (4, outputOperation)
-    , (5, jumpIfTrue)
-    , (6, jumpIfFalse)
-    , (7, lessThanOperation)
-    , (8, equalityOperation)
+    [ (1, IC.addOperation)
+    , (2, IC.multiplyOperation)
+    , (3, IC.readOperation)
+    , (4, IC.outputOperation)
+    , (5, IC.jumpIfTrue)
+    , (6, IC.jumpIfFalse)
+    , (7, IC.lessThanOperation)
+    , (8, IC.equalityOperation)
     ]
 
 makeIntSeq :: [String] -> Seq Int

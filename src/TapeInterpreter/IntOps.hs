@@ -1,6 +1,6 @@
-module IntOps where
+module TapeInterpreter.IntOps where
 
-import IntCode (Effect(..), NaryF(..), Operation)
+import TapeInterpreter.Types (Effect(..), NaryF(..), Operation)
 
 binaryOp :: (Int -> Int -> Int) -> Operation Int
 binaryOp f = Nary $ \x -> Nary $ \y -> Unary $ \i -> Store i (f x y)

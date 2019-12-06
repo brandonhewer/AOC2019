@@ -8,11 +8,10 @@ import qualified Data.IntMap.Strict as IM
 import Data.List (find)
 import Data.List.Split (splitOn)
 import Data.Sequence
-import qualified IntCode as IC
-import IntOps
+import qualified TapeInterpreter as IC
 
 ops :: IM.IntMap (IC.Operation Int)
-ops = IM.fromList [(1, addOperation), (2, multiplyOperation)]
+ops = IM.fromList [(1, IC.addOperation), (2, IC.multiplyOperation)]
 
 makeIntSeq :: [String] -> Seq Int
 makeIntSeq = fromList . (map read . splitOn "," =<<)
