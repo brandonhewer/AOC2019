@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
 
--- -# LANGUAGE FlexibleInstances #-}
 module TapeInterpreter.IntCode where
 
 import Control.Monad.Except
