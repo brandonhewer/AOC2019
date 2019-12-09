@@ -15,11 +15,13 @@ import ZipSequence
 class Environment m a | m -> a where
   isTerminator :: a -> m Bool
   operation :: IM.Key -> m (Operation a)
+  noInputs :: m Bool
   readInput :: m a
   output :: a -> m ()
 
 class Program m a | m -> a where
   next :: m ()
+  prev :: m ()
   moveTo :: Int -> m ()
   value :: m a
   valueAt :: Int -> m a
@@ -75,6 +77,9 @@ instance (MonadError ProgramError m, MonadState (ProgramState a) m, Eq a) =>
     case IM.lookup i (operations e) of
       Nothing -> throwError (NotAnOperation i)
       Just op -> return op
+  noInputs = do
+    PState p (Env t is os ops) <- get
+    return (null is)
   readInput = do
     PState p (Env t is os ops) <- get
     case is of
@@ -92,6 +97,11 @@ instance (MonadError ProgramError m, MonadState (ProgramState a) m) =>
     PState p e <- get
     case nextZS p of
       Nothing -> throwError EndOfProgram
+      Just v -> put (PState v e)
+  prev = do
+    PState p e <- get
+    case prevZS p of
+      Nothing -> index >>= throwError . OutOfBounds
       Just v -> put (PState v e)
   moveTo i = do
     PState p e <- get

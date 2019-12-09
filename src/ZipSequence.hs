@@ -6,6 +6,12 @@ data ZipSeq a =
   Pos (Seq a) (Int, a) (Seq a)
   deriving (Show)
 
+instance Functor ZipSeq where
+  fmap f (Pos u (i, x) t) = Pos (fmap f u) (i, f x) (fmap f t)
+
+instance Foldable ZipSeq where
+  foldr f z (Pos u (i, x) t) = foldr f (f x $ foldr f z t) u
+
 prevZS :: ZipSeq a -> Maybe (ZipSeq a)
 prevZS (Pos (s :|> x) (i, y) u) = Just $ Pos s (i - 1, x) (y :<| u)
 prevZS _ = Nothing
@@ -13,6 +19,10 @@ prevZS _ = Nothing
 nextZS :: ZipSeq a -> Maybe (ZipSeq a)
 nextZS (Pos s (i, x) (y :<| u)) = Just $ Pos (s :|> x) (i + 1, y) u
 nextZS _ = Nothing
+
+cyclicNextZS :: ZipSeq a -> ZipSeq a
+cyclicNextZS (Pos s (i, x) (y :<| u)) = Pos (s :|> x) (i + 1, y) u
+cyclicNextZS (Pos (x :<| s) (i, y) Empty) = Pos Empty (0, x) (s :|> y)
 
 moveToZS :: Int -> ZipSeq a -> ZipSeq a
 moveToZS i (Pos s (j, x) u)
@@ -39,8 +49,15 @@ updateZS i z (Pos s (j, x) u)
   | i < j = Pos (update i z s) (j, x) u
   | i > j = Pos s (j, x) $ update (i - j - 1) z u
 
+overZS :: (a -> a) -> ZipSeq a -> ZipSeq a
+overZS f (Pos s (i, x) u) = Pos s (i, f x) u
+
 indexZS :: ZipSeq a -> Int
 indexZS (Pos _ (i, _) _) = i
+
+atEndZS :: ZipSeq a -> Bool
+atEndZS (Pos _ _ Empty) = True
+atEndZS _ = False
 
 fromSeq :: Seq a -> Maybe (ZipSeq a)
 fromSeq (x :<| xs) = Just $ Pos Empty (0, x) xs
