@@ -12,6 +12,9 @@ instance Functor ZipSeq where
 instance Foldable ZipSeq where
   foldr f z (Pos u (i, x) t) = foldr f (f x $ foldr f z t) u
 
+lengthZS :: ZipSeq a -> Int
+lengthZS (Pos _ (i, _) s) = i + 1 + Data.Sequence.length s
+
 prevZS :: ZipSeq a -> Maybe (ZipSeq a)
 prevZS (Pos (s :|> x) (i, y) u) = Just $ Pos s (i - 1, x) (y :<| u)
 prevZS _ = Nothing

@@ -39,3 +39,6 @@ jumpIfTrue = jumpIf (/= 0)
 
 jumpIfFalse :: Operation Int
 jumpIfFalse = jumpIf (== 0)
+
+incRelativeBase :: Operation Int
+incRelativeBase = Unary $ \v -> IncrementBase v

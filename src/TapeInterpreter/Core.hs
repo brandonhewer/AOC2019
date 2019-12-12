@@ -31,20 +31,20 @@ isHalted :: (Monad m, Program m a, Environment m a, Eq a) => m Bool
 isHalted = value >>= isTerminator
 
 isTerminated :: Eq a => ProgramState a -> Bool
-isTerminated (PState p (Env t _ _ _)) = valueZS p == t
+isTerminated (PState p (Env t _ _ _ _) _) = valueZS p == t
 
 getOutputs :: ProgramState a -> [a]
-getOutputs (PState _ (Env _ _ os _)) = os
+getOutputs (PState _ (Env _ _ os _ _) _) = os
 
 clearOutput :: ProgramState a -> ProgramState a
-clearOutput (PState p (Env t is _ ops)) = PState p (Env t is [] ops)
+clearOutput (PState p (Env t is _ ops r) m) = PState p (Env t is [] ops r) m
 
 addOutputs :: ProgramState a -> ProgramState a -> ProgramState a
-addOutputs p (PState q (Env t xs os op)) =
-  PState q (Env t xs (getOutputs p ++ os) op)
+addOutputs p (PState q (Env t xs os op r) m) =
+  PState q (Env t xs (getOutputs p ++ os) op r) m
 
 mapInputs :: ([a] -> [a]) -> ProgramState a -> ProgramState a
-mapInputs f (PState p (Env t xs os op)) = PState p (Env t (f xs) os op)
+mapInputs f (PState p (Env t xs os op r) m) = PState p (Env t (f xs) os op r) m
 
 mapOutToIn ::
      ([a] -> [a] -> [a]) -> ProgramState a -> ProgramState a -> ProgramState a
@@ -55,7 +55,8 @@ addOutToIn = mapOutToIn (++)
 
 makeProgram ::
      a -> IM.IntMap (Operation a) -> Seq a -> [a] -> Maybe (ProgramState a)
-makeProgram t ops p is = flip PState (Env t is [] ops) <$> fromSeq p
+makeProgram t ops p is =
+  (\q -> PState q (Env t is [] ops 0) IM.empty) <$> fromSeq p
 
 runProgram ::
      Monad m

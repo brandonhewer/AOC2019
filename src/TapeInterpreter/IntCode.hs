@@ -13,31 +13,52 @@ import TapeInterpreter.Core
 import TapeInterpreter.Types
 import ZipSequence
 
+valueAtOr ::
+     (MonadError ProgramError m, Program m Int, Environment m Int)
+  => Int
+  -> Int
+  -> m Int
+valueAtOr m n = valueAt n `catchError` handle
+  where
+    handle (OutOfBounds i)
+      | i < 0 = throwError (OutOfBounds i)
+      | otherwise = return m
+    handle err = throwError err
+
 getValue ::
-     (Monad m, Program m Int, Environment m Int) => Maybe ParameterMode -> m Int
-getValue (Just Immediate) = value
-getValue _ = value >>= valueAt
+     (MonadError ProgramError m, Program m Int, Environment m Int)
+  => Maybe ParameterMode
+  -> Int
+  -> m Int
+getValue (Just Immediate) x = return x
+getValue (Just Relative) x = relativePos x >>= valueAtOr 0
+getValue _ x = valueAtOr 0 x
 
 runEffect ::
-     (Monad m, Program m Int, Environment m Int)
+     (MonadError ProgramError m, Program m Int, Environment m Int)
   => Maybe ParameterMode
   -> Effect Int
   -> m ()
-runEffect _ (Store i v) = (updateAt i v) >> next
+runEffect (Just Relative) (Store i v) =
+  relativePos i >>= flip updateAt v >> next
+runEffect _ (Store i v) = updateAt i v >> next
+runEffect (Just Relative) (Read i) =
+  relativePos i >>= (readInput >>=) . updateAt >> next
 runEffect _ (Read i) = (readInput >>= updateAt i) >> next
-runEffect _ (Output i) = (valueAt i >>= output) >> next
-runEffect (Just Immediate) (MoveTo i) = moveTo i
-runEffect _ (MoveTo i) = valueAt i >>= moveTo
+runEffect p (Output i) = (getValue p i >>= output) >> next
+runEffect p (IncrementBase i) =
+  (getValue p i >>= adjustRelativeBase . (+)) >> next
+runEffect p (MoveTo i) = getValue p i >>= moveTo
 runEffect _ Continue = next
 
 runOp ::
-     (Monad m, Program m Int, Environment m Int)
+     (MonadError ProgramError m, Program m Int, Environment m Int)
   => [ParameterMode]
   -> Operation Int
   -> m ()
 runOp ms (Unary f) = value >>= runEffect (fst <$> uncons ms) . f
 runOp ms (Nary f) = do
-  v <- getValue (fst <$> uncons ms)
+  v <- value >>= getValue (fst <$> uncons ms)
   next >> runOp (drop 1 ms) (f v)
 
 isAwaitingInput :: (Monad m, Program m Int, Environment m Int) => m Bool
@@ -51,7 +72,8 @@ isAwaitingInput = do
         _ -> return False
     _ -> return False
 
-stepInt :: (Monad m, Program m Int, Environment m Int) => m Bool
+stepInt ::
+     (MonadError ProgramError m, Program m Int, Environment m Int) => m Bool
 stepInt = do
   halted <- isHalted
   if halted

@@ -18,6 +18,8 @@ class Environment m a | m -> a where
   noInputs :: m Bool
   readInput :: m a
   output :: a -> m ()
+  relativePos :: Int -> m Int
+  adjustRelativeBase :: (Int -> Int) -> m ()
 
 class Program m a | m -> a where
   next :: m ()
@@ -38,12 +40,14 @@ data Env a =
     , inputs :: [a]
     , outputs :: [a]
     , operations :: IM.IntMap (Operation a)
+    , relativeBase :: Int
     }
 
 data ProgramState a =
   PState
     { program :: ZipSeq a
     , environment :: Env a
+    , externalMemory :: IM.IntMap a
     }
 
 data Effect a
@@ -51,11 +55,13 @@ data Effect a
   | Read Int
   | Output Int
   | MoveTo Int
+  | IncrementBase Int
   | Continue
 
 data ParameterMode
   = Position
   | Immediate
+  | Relative
   deriving (Enum)
 
 data ProgramError
@@ -73,44 +79,55 @@ instance (MonadError ProgramError m, MonadState (ProgramState a) m, Eq a) =>
          Environment m a where
   isTerminator n = ((== n) . terminator . environment) <$> get
   operation i = do
-    PState _ e <- get
+    PState _ e _ <- get
     case IM.lookup i (operations e) of
       Nothing -> throwError (NotAnOperation i)
       Just op -> return op
   noInputs = do
-    PState p (Env t is os ops) <- get
+    PState _ (Env _ is _ _ _) _ <- get
     return (null is)
   readInput = do
-    PState p (Env t is os ops) <- get
+    PState p (Env t is os ops r) m <- get
     case is of
       [] -> throwError InputNotFound
-      (i:xs) -> (put $ PState p (Env t xs os ops)) >> return i
+      (i:xs) -> (put $ PState p (Env t xs os ops r) m) >> return i
   output o = do
-    PState p (Env t is os ops) <- get
-    put $ PState p (Env t is (o : os) ops)
+    PState p (Env t is os ops r) m <- get
+    put $ PState p (Env t is (o : os) ops r) m
+  relativePos n = do
+    PState _ (Env _ _ _ _ r) _ <- get
+    return (r + n)
+  adjustRelativeBase f = do
+    PState p (Env t is os ops r) m <- get
+    put $ PState p (Env t is os ops (f r)) m
 
 instance (MonadError ProgramError m, MonadState (ProgramState a) m) =>
          Program m a where
   value = (valueZS . program) <$> get
   index = (indexZS . program) <$> get
   next = do
-    PState p e <- get
+    PState p e m <- get
     case nextZS p of
       Nothing -> throwError EndOfProgram
-      Just v -> put (PState v e)
+      Just v -> put (PState v e m)
   prev = do
-    PState p e <- get
+    PState p e m <- get
     case prevZS p of
       Nothing -> index >>= throwError . OutOfBounds
-      Just v -> put (PState v e)
+      Just v -> put (PState v e m)
   moveTo i = do
-    PState p e <- get
-    put $ PState (moveToZS i p) e
+    PState p e m <- get
+    put $ PState (moveToZS i p) e m
   valueAt i = do
-    PState p _ <- get
+    PState p _ m <- get
     case lookupZS i p of
-      Nothing -> throwError (OutOfBounds i)
+      Nothing ->
+        case IM.lookup i m of
+          Nothing -> throwError (OutOfBounds i)
+          Just v -> return v
       Just v -> return v
   updateAt i z = do
-    PState p e <- get
-    put $ PState (updateZS i z p) e
+    PState p e m <- get
+    if i < lengthZS p
+      then put $ PState (updateZS i z p) e m
+      else put $ PState p e (IM.insert i z m)

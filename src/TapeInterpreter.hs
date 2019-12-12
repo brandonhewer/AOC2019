@@ -28,6 +28,7 @@ ops =
     , (6, jumpIfFalse)
     , (7, lessThanOperation)
     , (8, equalityOperation)
+    , (9, incRelativeBase)
     ]
 
 makeIntProgram :: Int -> Seq Int -> [Int] -> Maybe (ProgramState Int)
